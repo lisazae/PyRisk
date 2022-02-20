@@ -1,3 +1,6 @@
+.DS_Store
+*.pdf
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -69,7 +72,7 @@ instance/
 .scrapy
 
 # Sphinx documentation
-docs/_build/
+sphinx/_build/
 
 # PyBuilder
 target/
@@ -127,3 +130,4 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+.idea
