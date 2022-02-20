@@ -27,24 +27,24 @@ class Simulator:
     los resultados de la simulación y con ella ejecutar los resumenes y gráficos 
     para la toma de decisiones sobre un problema particular.
     
-    :param nsim:
+    :param nsim (int):
         Número de simulaciones.
 
-    :param niter:
+    :param niter (int):
         Número de iteraciones.
 
-    :param fn_generadora:
+    :param fn_generadora (function):
         Función que genera el usuario que realiza el cálculo de los valores que
         se desean simular, este resultado debe arrojar un diccionario, 
         donde la clave sea el nombre de la variable a simular y el valor los resultados. 
 
-    :param variables_entrada:
+    :param variables_entrada (function):
         Función que retorna un diccionario con la cantidad de variables importantes
         para describir el problema, la clave del diccionario es el nombre de la 
         variable y el valor la distribución de probabilidad que describe el comportamiento de 
         esta con sus respectivos valores.
 
-    :param alpha:
+    :param alpha (float):
         Confianza con la cual se va a realizar el intervalo de confianza para la media.
     """
     def __init__(self,nsim,niter,fn_generadora,variables,alpha):
@@ -57,19 +57,24 @@ class Simulator:
     
     def get_simulations(self):
         """
-        Con esta meétodo es posible obtener los resultados netos de la simulación, es decir, 
-        sin ningún cálculo o transformación. 
+        Con esta método es posible obtener los resultados arrojados por la ejecución
+        la simulación, es decir, sin ningún cálculo o transformación. 
+
+        :return:
+            Pandas data frame con dos columnas fijas que describen la cantidad
+            de simulaciones e iteraciones generadas en la simulación.
         """
         df=pd.DataFrame(self.result_simulation)
         return df
 
     def run_simulation(self):
         """
-        Este método es responsable de ejecutar la función f_generadora y recolectar los resultados. La función va a realizar n_sim
-        simulaciones y cada una de ellas de n_iter iteraciones. La función retorna los resultados en el siguiente formato:
+        Este método es responsable de ejecutar la función f_generadora con las respectivas variables de entrada,
+        además de recolectar los resultados. El método va a realizar n_sim simulaciones y cada una de ellas de n_iter iteraciones. 
+        El método almacena los resultados en el siguiente formato:
         una lista de diccionarios donde cada diccionario de n_sim posiciones. Cada elemento de la lista un diccionario que recoge la n_iter para
-        cada una de las variablexs, es decir, si hay 2 simulaciones cada una de 5 iteraciones y hay 1 variable para analizar, la
-        estructura que retorna es la siguiente:   
+        cada una de las variables, es decir, si hay 2 simulaciones cada una de 5 iteraciones y hay 1 variable para analizar, la
+        estructura que almacena es la siguiente:   
         
         [{'simulacion':0, 'iteracion': 0, 'VPN': 48400.10987514735},
         {'simulacion': 0, 'iteracion': 1, 'VPN': -162646.12417961366}, 
@@ -96,8 +101,10 @@ class Simulator:
     def summary_table(self):
         """
         Este método define la tabla resumen de las diferentes simulaciones e iteraciones
-        que se hacen en el simulador. La estructura resultado es la siguiente: 
-
+        que se ejecutan en el simulador. 
+        
+        :return:
+            Pandas data frame con la siguiente estructura:
            simulacion   variable      Mínimo  ...            Q2            Q3           IQR
                     0      TIR -1.562043e+06  ...  1.034710e+06  2.010893e+06  1.765772e+06
                     0      VPN -3.237218e+13  ...  5.550969e+13  9.769850e+13  7.625594e+13
@@ -106,7 +113,6 @@ class Simulator:
                     2      TIR -1.464660e+06  ...  1.061807e+06  2.137692e+06  1.875725e+06
                     2      VPN -3.202647e+13  ...  5.433118e+13  1.036741e+14  8.129621e+13
         """
-        
         Base=pd.DataFrame(self.result_simulation)
         Base1 = pd.melt(Base, id_vars=["simulacion"], value_vars=Base.columns[2:])
         
@@ -122,18 +128,25 @@ class Simulator:
        
         df=pd.DataFrame(summary_t1)
 
+        self.table=df
         return df    
 
     def histogram(self,**histplot_kwargs):
         """
-        Este meétodo permite realizar los histogramas de los resultados de las simulaciones
-        con el fin de observar el comportamiento de estas. 
-        """
+        Este meétodo permite graficar los histogramas de los resultados de las simulaciones
+        con el fin de observar el comportamiento de su distribución.
+
+        :param ****histplot_kwargs:
+            Elementos adicionales con los que el usuario puede darle un mejor aspecto a los graficos
+            realizados.
         
+        :return:
+            La cantida de histogramas en función de la cantidad de variables que se simularon.
+        """
+
         Base=pd.DataFrame(self.result_simulation)
         Base1 = pd.melt(Base, id_vars=["simulacion"], value_vars=Base.columns[2:])
         Base1=Base1.sort_values('variable')
-        
 
         g=sns.FacetGrid(Base1,col="variable", margin_titles=True,aspect=4,sharex=False)
         plt.gcf().set_size_inches(11.7, 8.27)
@@ -148,34 +161,9 @@ class Simulator:
 
         for ax, pos in zip(g.axes.flat, lines_position):
             ax.axvline(x=pos, color='r', linestyle='--',linewidth=3)
-        plt.show()
-    
-    def correlation(self,method):
-        Base = pd.DataFrame(self.result_simulation)
-        Base = Base.iloc[:, 2:]
-        corr_df = Base.corr(method=method)
-        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(5, 5))
-        sns.heatmap(corr_df, ax= ax,annot=True, square=True,cbar= False,annot_kws = {"size": 8},
-                cmap= sns.diverging_palette(20, 220, n=200),)
 
-        ax.set_xticklabels(
-        ax.get_xticklabels(),
-        rotation=45,
-        horizontalalignment='right',
-        )
+    plt.show()
 
-        ax.tick_params(labelsize=10)
-
-        plt.title("Correlation matrix")
-        plt.show()
-        
-
-    def dispersion(self):
-        Base=pd.DataFrame(self.result_simulation)
-        Base=Base.iloc[:,2:]
-        sns.pairplot(Base, height=1.5, corner=True,diag_kind = 'kde')
-        plt.title("Dispersion matrix")
-        plt.show()
     
     def plot_matrix(self, plot_type='pairplot', columns=False,method='pearson'):
         """
@@ -189,20 +177,22 @@ class Simulator:
             Por defecto el método por el cual se calcula la correlación entre
             variables es la de perason, pero se puede hacer uso de los demás métodos
             'kendall' o 'spearman'.
+
+        :return:
+            Dos graficos uno asociado a la dispersión de las variables simuladas y el otro
+            asociado a la correlación.
         """
         sns.set()
         plt.rc("figure", figsize=(16, 8.65))
         df=pd.DataFrame(self.result_simulation)
         df = df.iloc[:, 2:]
         plotting_df = (df[columns] if columns else df)
-        
         if plot_type == 'pairplot':
-            sns.pairplot(plotting_df, height=5, corner=False,diag_kind = 'kde',kind='scatter')
+            ax=sns.pairplot(plotting_df, height=5, corner=False,diag_kind = 'kde',kind='scatter')
             plt.suptitle('Dispersion matrix',size=15)
-            
         elif plot_type == 'corr_plot':
             corr_df = plotting_df.corr(method=method)
-            ax=sns.heatmap(corr_df, annot=True, square=True, cbar=False, annot_kws={"size": 15},
+            ax=sns.heatmap(corr_df, annot=True, square=True, cbar=False, annot_kws={"size": 12},
                     cmap=sns.diverging_palette(20, 220, n=200), )
 
             ax.set_xticklabels(
@@ -210,6 +200,6 @@ class Simulator:
                 rotation=45,
                 horizontalalignment='right',
             )
-            plt.title("Correlation matrix",size=15)
+            plt.title("Correlation matrix")
             ax.tick_params(labelsize=10)
         plt.show()
